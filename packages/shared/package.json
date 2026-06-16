@@ -1,0 +1,12 @@
+{
+  "name": "@agent-signal-market/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0"
+  }
+}

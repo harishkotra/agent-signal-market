@@ -1,0 +1,17 @@
+{
+  "name": "agent-signal-market",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/publisher",
+    "packages/consumer"
+  ],
+  "scripts": {
+    "publisher": "npm run start -w packages/publisher",
+    "consumer": "npm run start -w packages/consumer",
+    "typecheck": "tsc -b"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
