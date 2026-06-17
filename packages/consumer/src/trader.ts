@@ -122,27 +122,22 @@ export async function executeSwap(
     );
 
     const swapPath = "dex/aggregator/swap";
-    const swapRequestPath = `/api/v6/${swapPath}`;
-    const swapBody: Record<string, string> = {
+    const swapCallParams: Record<string, string> = {
       chainIndex: signal.chainIndex,
       fromTokenAddress: fromToken,
       toTokenAddress: signal.tokenAddress,
       amount: (config.buyAmountUsd * 1_000_000).toString(),
       userWalletAddress: getWalletAddress(),
       slippage: config.slippagePercent.toString(),
-      quoteId: quote.quoteId || "",
+      swapMode: "exactIn",
     };
-
-    const swapHeaders = getHeaders(
-      "POST",
-      swapRequestPath,
-      JSON.stringify(swapBody),
-    );
-    const swapRes = await axios.post(`${BASE_URL}/${swapPath}`, swapBody, {
+    const swapQuery = "?" + new URLSearchParams(swapCallParams).toString();
+    const swapHeaders = getHeaders("GET", `/api/v6/${swapPath}`, swapQuery);
+    const swapRes = await axios.get(`${BASE_URL}/${swapPath}${swapQuery}`, {
       headers: swapHeaders,
     });
 
-    if (swapRes.data.code !== "0") {
+    if (swapRes.data.code !== "0" || !swapRes.data.data?.[0]) {
       return {
         id: tradeId,
         signalId: signal.id,
@@ -159,16 +154,20 @@ export async function executeSwap(
       };
     }
 
-    const swapResult = swapRes.data.data?.[0] || {};
-    const txHash = swapResult.txHash || swapResult.orderId || "";
-    const success =
-      swapResult.state === "success" ||
-      swapResult.result === "success" ||
-      !!txHash;
+    const swapData = swapRes.data.data[0];
+    const tx = swapData.tx || {};
+    const txHash = tx.txHash || tx.orderId || "";
+    const hasTxData = !!tx.data && !!tx.to;
 
     console.log(
-      `  [Trader] Swap ${success ? "executed" : "submitted"}: txHash=${txHash || "pending"}`,
+      `  [Trader] Swap prepared: to=${tx.to?.slice(0, 20)}... | minReceive=${tx.minReceiveAmount || "?"}`,
     );
+
+    if (hasTxData) {
+      console.log(
+        `  [Trader] Broadcast: onchainos gateway broadcast --chain-id ${signal.chainIndex} --data '${tx.data.slice(0, 40)}...' --to '${tx.to}'`,
+      );
+    }
 
     return {
       id: tradeId,
@@ -180,8 +179,8 @@ export async function executeSwap(
       amountOut: toAmount,
       price: quote.price || signal.price,
       txHash: txHash || null,
-      status: success ? "confirmed" : "failed",
-      error: success ? null : "swap did not complete",
+      status: hasTxData ? "confirmed" : "failed",
+      error: hasTxData ? null : "no swap tx data returned",
       timestamp: Date.now(),
     };
   } catch (err: unknown) {
