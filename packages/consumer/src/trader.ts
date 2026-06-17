@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import crypto from "node:crypto";
 import axios from "axios";
 import dotenv from "dotenv";
 import type { Signal, TradeResult } from "./__shared-types.js";
@@ -9,11 +10,22 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const BASE_URL = "https://web3.okx.com/api/v6";
-const API_KEY = process.env.CONSUMER_OKX_API_KEY || "";
-const SECRET_KEY = process.env.CONSUMER_OKX_SECRET_KEY || "";
-const PASSPHRASE = process.env.CONSUMER_OKX_PASSPHRASE || "";
-const PROJECT_ID = process.env.CONSUMER_OKX_PROJECT_ID || "";
-const WALLET_ADDRESS = process.env.CONSUMER_WALLET_ADDRESS || "";
+
+function getApiKey(): string {
+  return process.env.CONSUMER_OKX_API_KEY || "";
+}
+function getSecretKey(): string {
+  return process.env.CONSUMER_OKX_SECRET_KEY || "";
+}
+function getPassphrase(): string {
+  return process.env.CONSUMER_OKX_PASSPHRASE || "";
+}
+function getProjectId(): string {
+  return process.env.CONSUMER_OKX_PROJECT_ID || "";
+}
+function getWalletAddress(): string {
+  return process.env.CONSUMER_WALLET_ADDRESS || "";
+}
 
 function getSignature(
   secretKey: string,
@@ -22,7 +34,6 @@ function getSignature(
   requestPath: string,
   body: string = "",
 ): string {
-  const crypto = require("node:crypto");
   const message = timestamp + method + requestPath + body;
   const hmac = crypto.createHmac("sha256", secretKey);
   hmac.update(message);
@@ -36,7 +47,7 @@ function getHeaders(
 ) {
   const timestamp = new Date().toISOString().slice(0, -5) + "Z";
   const signature = getSignature(
-    SECRET_KEY,
+    getSecretKey(),
     timestamp,
     method,
     requestPath,
@@ -44,11 +55,11 @@ function getHeaders(
   );
   return {
     "Content-Type": "application/json",
-    "OK-ACCESS-KEY": API_KEY,
+    "OK-ACCESS-KEY": getApiKey(),
     "OK-ACCESS-SIGN": signature,
     "OK-ACCESS-TIMESTAMP": timestamp,
-    "OK-ACCESS-PASSPHRASE": PASSPHRASE,
-    "OK-ACCESS-PROJECT": PROJECT_ID,
+    "OK-ACCESS-PASSPHRASE": getPassphrase(),
+    "OK-ACCESS-PROJECT": getProjectId(),
   };
 }
 
@@ -68,7 +79,7 @@ export async function executeSwap(
     fromTokenAddress: fromToken,
     toTokenAddress: signal.tokenAddress,
     amount: (config.buyAmountUsd * 1_000_000).toString(),
-    userWalletAddress: WALLET_ADDRESS,
+    userWalletAddress: getWalletAddress(),
     slippagePercent: config.slippagePercent.toString(),
   };
 
