@@ -47,6 +47,10 @@ poller.addFilter((s) => {
   if (!s.marketCap) return true;
   return parseFloat(s.marketCap) < 10_000_000;
 });
+poller.addFilter((s) => {
+  if (!s.soldRatioPercent) return true;
+  return parseFloat(s.soldRatioPercent) < 60;
+});
 
 app.use(
   "/api/v1",

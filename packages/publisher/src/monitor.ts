@@ -65,6 +65,7 @@ interface ApiSignal {
   triggerWalletAddress?: string;
   walletType?: string;
   amountUsd?: string;
+  soldRatioPercent?: string;
 }
 
 export interface RawSignal {
@@ -78,6 +79,7 @@ export interface RawSignal {
   triggerWalletCount: number;
   triggerWallets: string[];
   timestamp: number;
+  soldRatioPercent: string | null;
 }
 
 export type SignalFilter = (signal: RawSignal) => boolean;
@@ -117,14 +119,12 @@ export class SignalPoller {
     try {
       const path = "dex/market/signal/list";
       const requestPath = `/api/v6/${path}`;
-      const body = [
-        {
-          chainIndex: this.chainIndex,
-          walletType: "1,2,3",
-          minAddressCount: "2",
-          limit: "10",
-        },
-      ];
+      const body = {
+        chainIndex: this.chainIndex,
+        walletType: "1,2,3",
+        minAddressCount: "2",
+        limit: "10",
+      };
       const bodyStr = JSON.stringify(body);
       const headers = getHeaders("POST", requestPath, bodyStr);
 
@@ -158,6 +158,7 @@ export class SignalPoller {
             ? raw.triggerWalletAddress.split(",")
             : [],
           timestamp: parseInt(raw.timestamp || "") || Date.now(),
+          soldRatioPercent: raw.soldRatioPercent || null,
         };
 
         if (this.passesFilters(signal)) {
