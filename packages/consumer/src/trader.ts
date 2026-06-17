@@ -120,8 +120,54 @@ export async function executeSwap(
     console.log(
       `  [Trader] Quote received: ~${(parseInt(toAmount) / 1e6).toFixed(4)} tokens`,
     );
+
+    const swapPath = "dex/aggregator/swap";
+    const swapRequestPath = `/api/v6/${swapPath}`;
+    const swapBody: Record<string, string> = {
+      chainIndex: signal.chainIndex,
+      fromTokenAddress: fromToken,
+      toTokenAddress: signal.tokenAddress,
+      amount: (config.buyAmountUsd * 1_000_000).toString(),
+      userWalletAddress: getWalletAddress(),
+      slippage: config.slippagePercent.toString(),
+      quoteId: quote.quoteId || "",
+    };
+
+    const swapHeaders = getHeaders(
+      "POST",
+      swapRequestPath,
+      JSON.stringify(swapBody),
+    );
+    const swapRes = await axios.post(`${BASE_URL}/${swapPath}`, swapBody, {
+      headers: swapHeaders,
+    });
+
+    if (swapRes.data.code !== "0") {
+      return {
+        id: tradeId,
+        signalId: signal.id,
+        tokenAddress: signal.tokenAddress,
+        chainIndex: signal.chainIndex,
+        action: "buy",
+        amountIn: config.buyAmountUsd.toString(),
+        amountOut: "0",
+        price: signal.price,
+        txHash: null,
+        status: "failed",
+        error: swapRes.data.msg || "swap execution failed",
+        timestamp: Date.now(),
+      };
+    }
+
+    const swapResult = swapRes.data.data?.[0] || {};
+    const txHash = swapResult.txHash || swapResult.orderId || "";
+    const success =
+      swapResult.state === "success" ||
+      swapResult.result === "success" ||
+      !!txHash;
+
     console.log(
-      `  [Trader] Swap requires approval + tx — run: onchainos swap ${config.buyAmountUsd} USDC to ${signal.tokenAddress.slice(0, 10)} on chain ${signal.chainIndex}`,
+      `  [Trader] Swap ${success ? "executed" : "submitted"}: txHash=${txHash || "pending"}`,
     );
 
     return {
@@ -133,9 +179,9 @@ export async function executeSwap(
       amountIn: config.buyAmountUsd.toString(),
       amountOut: toAmount,
       price: quote.price || signal.price,
-      txHash: null,
-      status: "pending",
-      error: null,
+      txHash: txHash || null,
+      status: success ? "confirmed" : "failed",
+      error: success ? null : "swap did not complete",
       timestamp: Date.now(),
     };
   } catch (err: unknown) {
