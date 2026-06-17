@@ -180,7 +180,7 @@ export async function executeSwap(
       toTokenAddress: signal.tokenAddress,
       amount: amountIn,
       userWalletAddress: getWalletAddress(),
-      slippage: config.slippagePercent.toString(),
+      slippagePercent: config.slippagePercent.toString(),
       swapMode: "exactIn",
     };
     const swapQuery = "?" + new URLSearchParams(swapCallParams).toString();
