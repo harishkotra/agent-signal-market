@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type {
   AcceptEntry,
   X402Payload,
@@ -47,7 +48,7 @@ export function createPaymentAuthorization(
     String(Date.now()),
   ].join("|");
 
-  const crypto = require("node:crypto");
+  
   const hmac = crypto.createHmac("sha256", secretKey);
   hmac.update(message);
   const signature = hmac.digest("hex");
@@ -80,7 +81,7 @@ export function verifyPaymentAuthorization(
     String(auth.timestamp),
   ].join("|");
 
-  const crypto = require("node:crypto");
+  
   const expectedSig = crypto
     .createHmac("sha256", secretKey)
     .update(message)
