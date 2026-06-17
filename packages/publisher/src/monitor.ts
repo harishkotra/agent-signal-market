@@ -134,7 +134,10 @@ export class SignalPoller {
         { headers },
       );
 
-      if (res.data.code !== "0" || !res.data.data?.length) return;
+      if (res.data.code !== "0" || !res.data.data?.length) {
+        console.log(`  [Monitor] Polled — no signals found`);
+        return;
+      }
 
       for (const raw of res.data.data as ApiSignal[]) {
         const token = raw.token || {};
@@ -170,6 +173,8 @@ export class SignalPoller {
         // auth/payment error — skip silently
       } else if (msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND")) {
         // network error — skip silently
+      } else {
+        console.log(`  [Monitor] Poll error: ${msg}`);
       }
     }
   }
