@@ -11,6 +11,23 @@ dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const BASE_URL = "https://web3.okx.com/api/v6";
 
+const USDC_ADDRESSES: Record<string, string> = {
+  "501": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Solana
+  "1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // Ethereum
+  "8453": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base
+  "56": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // BSC
+  "137": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // Polygon
+  "10": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", // Optimism
+  "42161": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // Arbitrum
+  "196": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", // X Layer
+};
+
+function getFromToken(chainIndex: string): string {
+  return (
+    USDC_ADDRESSES[chainIndex] || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+  );
+}
+
 function getApiKey(): string {
   return process.env.CONSUMER_OKX_API_KEY || "";
 }
@@ -69,25 +86,60 @@ export async function executeSwap(
 ): Promise<TradeResult> {
   const tradeId = `trade_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
-  const fromToken =
-    signal.chainIndex === "501"
-      ? "So11111111111111111111111111111111111111112" // WSOL on Solana
-      : "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // native ETH
-
-  const swapParams = {
-    chainIndex: signal.chainIndex,
-    fromTokenAddress: fromToken,
-    toTokenAddress: signal.tokenAddress,
-    amount: (config.buyAmountUsd * 1_000_000).toString(),
-    userWalletAddress: getWalletAddress(),
-    slippagePercent: config.slippagePercent.toString(),
-  };
-
-  console.log(
-    `  [Trader] Getting swap quote for ${config.buyAmountUsd} USD → ${signal.tokenSymbol || signal.tokenAddress.slice(0, 10)}...`,
-  );
+  const fromToken = getFromToken(signal.chainIndex);
+  const isNative = fromToken === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
   try {
+    let amountIn;
+    if (isNative) {
+      const pricePath = "dex/market/price-info";
+      const priceQuery = `?chainIndex=${signal.chainIndex}&tokenAddress=${fromToken}`;
+      const priceHeaders = getHeaders(
+        "GET",
+        `/api/v6/${pricePath}`,
+        priceQuery,
+      );
+      const priceRes = await axios.get(
+        `${BASE_URL}/${pricePath}${priceQuery}`,
+        { headers: priceHeaders },
+      );
+      const tokenPrice = parseFloat(priceRes.data?.data?.[0]?.priceUsd || "0");
+      if (!tokenPrice) {
+        return {
+          id: tradeId,
+          signalId: signal.id,
+          tokenAddress: signal.tokenAddress,
+          chainIndex: signal.chainIndex,
+          action: "buy",
+          amountIn: config.buyAmountUsd.toString(),
+          amountOut: "0",
+          price: signal.price,
+          txHash: null,
+          status: "failed",
+          error: "could not fetch native token price",
+          timestamp: Date.now(),
+        };
+      }
+      amountIn = Math.floor(
+        (config.buyAmountUsd / tokenPrice) * 1e18,
+      ).toString();
+    } else {
+      amountIn = (config.buyAmountUsd * 1_000_000).toString();
+    }
+
+    const swapParams = {
+      chainIndex: signal.chainIndex,
+      fromTokenAddress: fromToken,
+      toTokenAddress: signal.tokenAddress,
+      amount: amountIn,
+      userWalletAddress: getWalletAddress(),
+      slippagePercent: config.slippagePercent.toString(),
+    };
+
+    console.log(
+      `  [Trader] Getting swap quote for ${config.buyAmountUsd} USD (${amountIn}) → ${signal.tokenSymbol || signal.tokenAddress.slice(0, 10)}...`,
+    );
+
     const path = "dex/aggregator/quote";
     const requestPath = `/api/v6/${path}`;
     const queryString = "?" + new URLSearchParams(swapParams).toString();
@@ -126,7 +178,7 @@ export async function executeSwap(
       chainIndex: signal.chainIndex,
       fromTokenAddress: fromToken,
       toTokenAddress: signal.tokenAddress,
-      amount: (config.buyAmountUsd * 1_000_000).toString(),
+      amount: amountIn,
       userWalletAddress: getWalletAddress(),
       slippage: config.slippagePercent.toString(),
       swapMode: "exactIn",
@@ -184,7 +236,11 @@ export async function executeSwap(
       timestamp: Date.now(),
     };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
+    let msg = err instanceof Error ? err.message : String(err);
+    if (axios.isAxiosError(err) && err.response?.data) {
+      msg = `API ${err.response.status}: ${JSON.stringify(err.response.data)}`;
+    }
+    console.log(`  [Trader] Swap error: ${msg}`);
     return {
       id: tradeId,
       signalId: signal.id,
