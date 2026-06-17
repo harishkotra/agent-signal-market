@@ -3,10 +3,9 @@ import { resolve } from "node:path";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { SignalMonitor } from "./monitor.js";
+import { SignalPoller } from "./monitor.js";
 import { SignalStore } from "./store.js";
 import { createX402Router } from "./x402-gate.js";
-import { createPaymentAuthorization } from "./__shared-x402.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../../.env") });
@@ -15,6 +14,9 @@ const PORT = parseInt(process.env.PUBLISHER_PORT || "3001");
 const CHAIN = process.env.SIGNAL_CHAIN || "501";
 const PAY_TO = process.env.PUBLISHER_WALLET_ADDRESS || "";
 const VERIFICATION_SECRET = process.env.PUBLISHER_OKX_SECRET_KEY || "";
+const POLL_INTERVAL = parseInt(
+  process.env.PUBLISHER_POLL_INTERVAL_MS || "30000",
+);
 
 if (!PAY_TO) {
   console.error("\n  Missing PUBLISHER_WALLET_ADDRESS in .env\n");
@@ -33,15 +35,15 @@ app.use(express.json());
 const store = new SignalStore();
 const signalCount = { value: 0 };
 
-const monitor = new SignalMonitor(CHAIN, (raw) => {
+const poller = new SignalPoller(CHAIN, (raw) => {
   const signal = store.add(raw);
   console.log(
     `  Published: #${signal.id} — ${signal.tokenSymbol || signal.tokenAddress.slice(0, 10)} @ $${parseFloat(signal.price).toFixed(8)}`,
   );
 });
 
-monitor.addFilter((s) => s.triggerWalletCount >= 2);
-monitor.addFilter((s) => {
+poller.addFilter((s) => s.triggerWalletCount >= 2);
+poller.addFilter((s) => {
   if (!s.marketCap) return true;
   return parseFloat(s.marketCap) < 10_000_000;
 });
@@ -68,7 +70,7 @@ async function main() {
   console.log(`  Pay to:   ${PAY_TO}`);
   console.log(`  Port:     ${PORT}\n`);
 
-  await monitor.connect();
+  poller.start(POLL_INTERVAL);
 
   app.listen(PORT, () => {
     console.log(`\n  Server running on http://localhost:${PORT}`);
