@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -17,6 +17,7 @@ const VERIFICATION_SECRET = process.env.PUBLISHER_OKX_SECRET_KEY || "";
 const POLL_INTERVAL = parseInt(
   process.env.PUBLISHER_POLL_INTERVAL_MS || "30000",
 );
+const DASHBOARD_DIR = resolve(__dirname, "../../dashboard/dist");
 
 if (!PAY_TO) {
   console.error("\n  Missing PUBLISHER_WALLET_ADDRESS in .env\n");
@@ -66,6 +67,23 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api/consumer", async (req, res, next) => {
+  try {
+    const consumerUrl = `http://localhost:${process.env.CONSUMER_PORT || 3002}${req.originalUrl}`;
+    const resp = await fetch(consumerUrl);
+    const data = await resp.json();
+    res.json(data);
+  } catch {
+    res.status(503).json({ error: "consumer not available" });
+  }
+});
+
+app.use(express.static(DASHBOARD_DIR));
+
+app.get("*", (_req, res) => {
+  res.sendFile(join(DASHBOARD_DIR, "index.html"));
+});
+
 async function main() {
   console.log(`\n  ════════════════════════════════════════`);
   console.log(`    Signal Publisher Agent`);
@@ -77,9 +95,9 @@ async function main() {
   poller.start(POLL_INTERVAL);
 
   app.listen(PORT, () => {
-    console.log(`\n  Server running on http://localhost:${PORT}`);
-    console.log(`  GET /api/v1/signals/latest  → x402-protected signal`);
-    console.log(`  GET /health                 → server status\n`);
+    console.log(`\n  Dashboard:   http://localhost:${PORT}`);
+    console.log(`  Signals API: http://localhost:${PORT}/api/v1/signals`);
+    console.log(`  Health:      http://localhost:${PORT}/health\n`);
   });
 }
 

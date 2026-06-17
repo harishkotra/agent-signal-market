@@ -4,14 +4,18 @@
   "workspaces": [
     "packages/shared",
     "packages/publisher",
-    "packages/consumer"
+    "packages/consumer",
+    "packages/dashboard"
   ],
   "scripts": {
     "publisher": "npm run start -w packages/publisher",
     "consumer": "npm run start -w packages/consumer",
+    "dashboard": "npm run dev -w packages/dashboard",
+    "dev": "concurrently -n pub,con,dash -c cyan,magenta,green \"npm run publisher\" \"npm run consumer\" \"npm run dashboard\"",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
+    "concurrently": "^9.0.0",
     "typescript": "^5.5.0"
   }
 }
