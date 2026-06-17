@@ -1,5 +1,9 @@
 node_modules/
 dist/
 .env
+.env.local
 *.tsbuildinfo
 packages/dashboard/package-lock.json
+journal/
+*.log
+.DS_Store

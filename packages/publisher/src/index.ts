@@ -97,7 +97,8 @@ async function main() {
   app.listen(PORT, () => {
     console.log(`\n  Dashboard:   http://localhost:${PORT}`);
     console.log(`  Signals API: http://localhost:${PORT}/api/v1/signals`);
-    console.log(`  Health:      http://localhost:${PORT}/health\n`);
+    console.log(`  Health:      http://localhost:${PORT}/health`);
+    console.log(`  Built by Harish Kotra (https://harishkotra.me)\n`);
   });
 }
 

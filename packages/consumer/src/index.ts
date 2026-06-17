@@ -131,7 +131,7 @@ async function main() {
     `    Publisher:      ${process.env.PUBLISHER_URL || "http://localhost:3001"}`,
   );
   console.log(`    Poll interval:  ${POLL_INTERVAL_MS / 1000}s`);
-  console.log(`    API server:     http://localhost:${CONSUMER_PORT}\n`);
+  console.log(`    API server:     http://localhost:${CONSUMER_PORT}`);
 
   const existing = readTrades();
   if (existing.length > 0) {
@@ -142,7 +142,8 @@ async function main() {
     console.log(`  Consumer API running on http://localhost:${CONSUMER_PORT}`);
     console.log(`  GET /api/consumer/status      → consumer status`);
     console.log(`  GET /api/consumer/trades       → trade journal`);
-    console.log(`  GET /api/consumer/last-signal  → last signal\n`);
+    console.log(`  GET /api/consumer/last-signal  → last signal`);
+    console.log(`  Built by Harish Kotra (https://harishkotra.me)\n`);
   });
 
   while (true) {
