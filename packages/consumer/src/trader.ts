@@ -1,9 +1,12 @@
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import axios from "axios";
 import dotenv from "dotenv";
 import type { Signal, TradeResult } from "./__shared-types.js";
 import type { StrategyConfig } from "./strategist.js";
 
-dotenv.config();
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const BASE_URL = "https://web3.okx.com/api/v6";
 const API_KEY = process.env.CONSUMER_OKX_API_KEY || "";

@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -6,7 +8,8 @@ import { SignalStore } from "./store.js";
 import { createX402Router } from "./x402-gate.js";
 import { createPaymentAuthorization } from "./__shared-x402.js";
 
-dotenv.config();
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const PORT = parseInt(process.env.PUBLISHER_PORT || "3001");
 const CHAIN = process.env.SIGNAL_CHAIN || "501";

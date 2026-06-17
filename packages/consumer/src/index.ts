@@ -1,10 +1,13 @@
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { fetchLatestSignal } from "./subscriber.js";
 import { loadStrategy, validateSignal } from "./strategist.js";
 import { executeSwap } from "./trader.js";
 import { initJournal, logTrade, readTrades, printSummary } from "./journal.js";
 
-dotenv.config();
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || "15000");
 const MAX_TRADES_PER_RUN = parseInt(process.env.MAX_TRADES_PER_RUN || "3");
