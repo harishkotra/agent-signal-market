@@ -7,6 +7,7 @@ import { fetchLatestSignal } from "./subscriber.js";
 import { loadStrategy, validateSignal } from "./strategist.js";
 import { executeSwap } from "./trader.js";
 import { initJournal, logTrade, readTrades, printSummary } from "./journal.js";
+import { getX402Mode } from "./x402-real.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../../.env") });
@@ -36,6 +37,7 @@ app.get("/api/consumer/status", (_req, res) => {
     paymentsMade,
     lastPollTime,
     maxTrades: MAX_TRADES_PER_RUN,
+    x402Mode: getX402Mode(),
     config: {
       minConfidence: config.minConfidence,
       maxMarketCap: config.maxMarketCap,
@@ -124,6 +126,7 @@ async function main() {
   );
   console.log(`    Buy amount:     $${config.buyAmountUsd}`);
   console.log(`    Chain:          ${config.allowedChains.join(", ")}`);
+  console.log(`    x402 mode:      ${getX402Mode()}`);
   console.log(
     `    Publisher:      ${process.env.PUBLISHER_URL || "http://localhost:3001"}`,
   );

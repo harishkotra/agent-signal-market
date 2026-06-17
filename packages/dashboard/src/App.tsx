@@ -113,7 +113,7 @@ function StatusPanel() {
               </b>
             </div>
             <div>
-              Payments: <b>{c.paymentsMade}</b>
+              Payments: <b>{c.paymentsMade}</b> ({c.x402Mode})
             </div>
           </div>
         ) : (

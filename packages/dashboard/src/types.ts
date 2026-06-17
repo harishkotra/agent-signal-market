@@ -34,6 +34,7 @@ export interface ConsumerStatus {
   paymentsMade: number;
   lastPollTime: number | null;
   maxTrades: number;
+  x402Mode: string;
   config: {
     minConfidence: number;
     maxMarketCap: number;

@@ -1,9 +1,8 @@
-import type {
-  Signal,
-  X402Payload,
-  PaymentAuthorization,
-} from "./__shared-types.js";
-import { createPaymentAuthorization } from "./__shared-x402.js";
+import type { Signal, X402Payload } from "./__shared-types.js";
+import {
+  createPaymentAuthorization as createPaymentAuth,
+  getX402Mode,
+} from "./x402-real.js";
 
 const PUBLISHER_URL = process.env.PUBLISHER_URL || "http://localhost:3001";
 
@@ -61,11 +60,12 @@ async function handle402(res: Response): Promise<FetchResult> {
   console.log(`  Signing x402 authorization...`);
 
   try {
-    const auth = createPaymentAuthorization(
+    const auth = await createPaymentAuth(
       accept,
       getWalletAddress(),
       getSecretKey(),
     );
+    console.log(`  Mode: ${auth.mode}`);
 
     const retry = await fetch(`${PUBLISHER_URL}/api/v1/signals/latest`, {
       headers: {
