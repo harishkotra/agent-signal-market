@@ -7,7 +7,7 @@ import { createPaymentAuthorization } from "./__shared-x402.js";
 
 const PUBLISHER_URL = process.env.PUBLISHER_URL || "http://localhost:3001";
 const WALLET_ADDRESS = process.env.CONSUMER_WALLET_ADDRESS || "";
-const SECRET_KEY = process.env.CONSUMER_OKX_SECRET_KEY || "";
+const SECRET_KEY = process.env.PUBLISHER_OKX_SECRET_KEY || "";
 
 export interface FetchResult {
   signal: Signal | null;
